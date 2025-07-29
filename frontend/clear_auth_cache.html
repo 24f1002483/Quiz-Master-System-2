@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Auth Cache</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; cursor: pointer; }
+        .danger { background: #dc3545; }
+        .success { background: #28a745; }
+        .info { background: #17a2b8; }
+        .log { margin: 10px 0; padding: 10px; border: 1px solid #ccc; background: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <h1>Authentication Cache Management</h1>
+    
+    <div>
+        <button class="button danger" onclick="clearCache()">Clear All Cache</button>
+        <button class="button info" onclick="showCache()">Show Current Cache</button>
+        <button class="button success" onclick="testLogin()">Test Login</button>
+    </div>
+    
+    <div id="output"></div>
+
+    <script>
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const div = document.createElement('div');
+            div.className = 'log';
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}:</strong> ${message}`;
+            output.appendChild(div);
+        }
+        
+        function clearCache() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
+            sessionStorage.clear();
+            
+            // Clear cookies
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            
+            log('✅ All cache cleared successfully', 'success');
+        }
+        
+        function showCache() {
+            const token = localStorage.getItem('token');
+            const refreshToken = localStorage.getItem('refreshToken');
+            const user = localStorage.getItem('user');
+            
+            log('Current localStorage:');
+            log(`Token: ${token ? 'Present' : 'Not found'}`);
+            log(`Refresh Token: ${refreshToken ? 'Present' : 'Not found'}`);
+            log(`User: ${user ? 'Present' : 'Not found'}`);
+            
+            if (token) {
+                try {
+                    const tokenParts = token.split('.');
+                    if (tokenParts.length === 3) {
+                        const payload = JSON.parse(atob(tokenParts[1]));
+                        log(`Token expires: ${new Date(payload.exp * 1000).toLocaleString()}`);
+                    }
+                } catch (e) {
+                    log('Could not decode token');
+                }
+            }
+        }
+        
+        async function testLogin() {
+            log('Testing login...');
+            
+            try {
+                const response = await fetch('http://localhost:5000/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ 
+                        username: 'admin@quizmaster.com', 
+                        password: 'admin123' 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('✅ Login successful!', 'success');
+                    log(`User: ${data.user?.full_name}`, 'success');
+                    log(`Session timeout: ${data.session_timeout} minutes`, 'success');
+                    
+                    // Store tokens
+                    if (data.access_token) {
+                        localStorage.setItem('token', data.access_token);
+                        log('✅ Access token stored', 'success');
+                    }
+                    if (data.refresh_token) {
+                        localStorage.setItem('refreshToken', data.refresh_token);
+                        log('✅ Refresh token stored', 'success');
+                    }
+                    if (data.user) {
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        log('✅ User data stored', 'success');
+                    }
+                } else {
+                    log(`❌ Login failed: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Show initial cache state
+        showCache();
+    </script>
+</body>
+</html> 
