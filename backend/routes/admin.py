@@ -149,10 +149,36 @@ def update_quiz(id):
 @jwt_required()
 @admin_required
 def delete_quiz(id):
-    quiz = Quiz.query.get_or_404(id)
-    db.session.delete(quiz)
-    db.session.commit()
-    return jsonify({"message": "Quiz deleted"}), 200
+    try:
+        quiz = Quiz.query.get_or_404(id)
+        
+        # Delete all user quiz attempts associated with this quiz first
+        # (this will cascade delete UserAnswer records)
+        from models.model import UserQuizAttempt
+        attempts = UserQuizAttempt.query.filter_by(quiz_id=id).all()
+        for attempt in attempts:
+            db.session.delete(attempt)
+        
+        # Delete all scores associated with this quiz
+        from models.model import Score
+        scores = Score.query.filter_by(quiz_id=id).all()
+        for score in scores:
+            db.session.delete(score)
+        
+        # Delete all questions associated with this quiz
+        questions = Question.query.filter_by(quiz_id=id).all()
+        for question in questions:
+            db.session.delete(question)
+        
+        # Now delete the quiz
+        db.session.delete(quiz)
+        db.session.commit()
+        
+        return jsonify({"message": "Quiz and all associated data deleted successfully"}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": f"Error deleting quiz: {str(e)}"}), 500
 
 # Questions CRUD
 @admin_bp.route('/questions', methods=['POST'])

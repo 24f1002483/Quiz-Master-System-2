@@ -34,7 +34,7 @@ def session_middleware():
         return None
     
     # Skip session check for login and public routes
-    public_routes = ['/login', '/register', '/refresh', '/session/status']
+    public_routes = ['/', '/login', '/register', '/refresh', '/session/status']
     
     if request.path in public_routes:
         return None

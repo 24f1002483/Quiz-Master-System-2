@@ -1,7 +1,7 @@
 import api from './axiosConfig.js';
 import sessionService from './sessionService.js';
 
-const API_URL = '';
+const API_URL = ''; // No prefix - routes are at /login, /register, etc.
 
 export const loginAdmin = async (username, password) => {
   try {

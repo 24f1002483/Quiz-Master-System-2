@@ -37,7 +37,9 @@
             </tbody>
           </table>
         </div>
-        <button class="add-question-btn" @click="handleAddQuestion(quiz.id)">+ Question</button>
+        <div class="quiz-actions">
+          <button class="add-question-btn" @click="handleAddQuestion(quiz.id)">+ Question</button>
+           </div>
       </div>
     </div>
 
@@ -108,6 +110,18 @@ const handleDeleteQuestion = async (quizId, questionId) => {
     await loadQuizzes();
   } catch (error) {
     alert('Error deleting question: ' + error);
+  }
+};
+
+const handleDeleteQuiz = async (quizId) => {
+  if (confirm('Are you sure you want to delete this quiz? This action cannot be undone.')) {
+    try {
+      await deleteQuiz(quizId);
+      await loadQuizzes();
+    } catch (error) {
+      console.error('Error deleting quiz:', error);
+      alert('Error deleting quiz: ' + error);
+    }
   }
 };
 
@@ -309,6 +323,13 @@ h2 {
   box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
 }
 
+.quiz-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
 .add-question-btn {
   background: linear-gradient(90deg, #42b983 60%, #4f8cff 100%);
   color: #fff;
@@ -320,8 +341,24 @@ h2 {
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(79, 140, 255, 0.13);
   transition: background 0.2s, box-shadow 0.2s;
-  align-self: center;
-  margin-top: auto;
+}
+
+.delete-quiz-btn {
+  background: #e74c3c;
+  color: #fff;
+  font-weight: 600;
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.13);
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.delete-quiz-btn:hover {
+  background: #c0392b;
+  box-shadow: 0 4px 16px rgba(231, 76, 60, 0.18);
 }
 
 .add-question-btn:hover {

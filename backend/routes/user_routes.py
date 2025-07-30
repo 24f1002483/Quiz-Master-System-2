@@ -1,9 +1,19 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models.model import db, Quiz, Question, UserQuizAttempt, UserAnswer
+from models.model import db, Quiz, Question, UserQuizAttempt, UserAnswer, User
 from datetime import datetime
 
 user_bp = Blueprint('user', __name__, url_prefix='/api/user')
+
+@user_bp.route('/count', methods=['GET'])
+@jwt_required()
+def get_user_count():
+    """Get total user count for analytics"""
+    try:
+        user_count = User.query.count()
+        return jsonify({'count': user_count})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @user_bp.route('/quizzes/upcoming', methods=['GET'])
 @jwt_required()

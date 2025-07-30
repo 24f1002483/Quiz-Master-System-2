@@ -5,8 +5,8 @@ import time
 def get_redis_connection():
     """Get optimized Redis connection with connection pooling"""
     return redis.Redis.from_url(
-        Config.CELERY_BROKER_URL,
-        max_connections=Config.CELERY_REDIS_MAX_CONNECTIONS,
+        Config.broker_url,
+        max_connections=Config.redis_max_connections,
         socket_timeout=10,
         socket_connect_timeout=5,
         retry_on_timeout=True,

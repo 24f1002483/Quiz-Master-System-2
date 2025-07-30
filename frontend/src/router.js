@@ -6,15 +6,18 @@ import Login from './components/Login.vue'
 import Register from './components/Register.vue'
 import AdminLayout from './components/AdminLayout.vue'
 import AdminDashboard from './components/AdminDashboard.vue'
+import ExportDashboard from './components/ExportDashboard.vue'
 import SubjectManagement from './components/SubjectManagement.vue'
 import ChapterManagement from './components/ChapterManagement.vue'
 import QuizManagement from './components/QuizManagement.vue'
 import QuestionManagement from './components/QuestionManagement.vue'
 import UserManagement from './components/UserManagement.vue'
 import UserDashboard from './components/UserDashboard.vue'
+import UserSummary from './components/UserSummary.vue'
 import AvailableQuizzes from './components/AvailableQuizzes.vue'
 import QuizTaking from './components/QuizTaking.vue'
 import ScoreSummary from './components/ScoreSummary.vue'
+import QuizSummary from './components/QuizSummary.vue'
 import { checkAuth } from './services/authService.js'
 
 const routes = [
@@ -72,6 +75,16 @@ const routes = [
         component: UserManagement
       },
       {
+        path: 'export',
+        name: 'AdminExport',
+        component: ExportDashboard
+      },
+      {
+        path: 'summary',
+        name: 'AdminSummary',
+        component: QuizSummary
+      },
+      {
         path: '',
         redirect: 'dashboard'
       }
@@ -98,7 +111,7 @@ const routes = [
   {
     path: '/user/summary',
     name: 'UserSummary',
-    component: ScoreSummary,
+    component: UserSummary,
     meta: { requiresAuth: true }
   },
   {

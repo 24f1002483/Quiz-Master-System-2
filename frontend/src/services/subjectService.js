@@ -1,6 +1,6 @@
-import axios from 'axios';
+import api from './axiosConfig.js';
 
-const API_URL = 'http://localhost:5000/api/admin';
+const API_URL = '/api';
 
 function getCookie(name) {
   const value = `; ${document.cookie}`;
@@ -10,7 +10,7 @@ function getCookie(name) {
 
 export const fetchSubjects = async () => {
   try {
-    const response = await axios.get(`${API_URL}/subjects`, { withCredentials: true });
+    const response = await api.get(`${API_URL}/subjects`);
     return response.data;
   } catch (error) {
     throw error.response?.data?.message || error.message || 'Unknown error';
@@ -19,17 +19,7 @@ export const fetchSubjects = async () => {
 
 export const createSubject = async (subjectData) => {
   try {
-    const csrfToken = getCookie('csrf_access_token');
-    const response = await axios.post(
-      `${API_URL}/subjects`,
-      subjectData,
-      {
-        withCredentials: true,
-        headers: {
-          'X-CSRF-TOKEN': csrfToken
-        }
-      }
-    );
+    const response = await api.post(`${API_URL}/subjects`, subjectData);
     return response.data;
   } catch (error) {
     throw error.response?.data?.message || error.message || 'Unknown error';
@@ -38,17 +28,7 @@ export const createSubject = async (subjectData) => {
 
 export const updateSubject = async (id, subjectData) => {
   try {
-    const csrfToken = getCookie('csrf_access_token');
-    const response = await axios.put(
-      `${API_URL}/subjects/${id}`,
-      subjectData,
-      {
-        withCredentials: true,
-        headers: {
-          'X-CSRF-TOKEN': csrfToken
-        }
-      }
-    );
+    const response = await api.put(`${API_URL}/subjects/${id}`, subjectData);
     return response.data;
   } catch (error) {
     throw error.response?.data?.message || error.message || 'Unknown error';
@@ -57,16 +37,7 @@ export const updateSubject = async (id, subjectData) => {
 
 export const deleteSubject = async (id) => {
   try {
-    const csrfToken = getCookie('csrf_access_token');
-    const response = await axios.delete(
-      `${API_URL}/subjects/${id}`,
-      {
-        withCredentials: true,
-        headers: {
-          'X-CSRF-TOKEN': csrfToken
-        }
-      }
-    );
+    const response = await api.delete(`${API_URL}/subjects/${id}`);
     return response.data;
   } catch (error) {
     throw error.response?.data?.message || error.message || 'Unknown error';

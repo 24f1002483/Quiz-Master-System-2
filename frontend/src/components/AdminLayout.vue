@@ -1,6 +1,11 @@
 <template>
   <div class="admin-layout">
-    <NavBarDashboard :onSearch="search" />
+    <NavBarDashboard 
+      userType="admin" 
+      :welcomeName="welcomeName" 
+      :onLogout="logout" 
+      :onSearch="search" 
+    />
     <main class="admin-content">
       <router-view />
     </main>
@@ -22,15 +27,17 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import NavBarDashboard from './NavBarDashboard.vue';
 import SearchResults from './SearchResults.vue';
 import axios from 'axios';
+import { logoutUser } from '../services/authService.js';
 
 const router = useRouter();
 const searchQuery = ref('');
 const showSearchResults = ref(false);
+const welcomeName = ref('Admin');
 const searchResults = ref({
   quizzes: [],
   scores: [],
@@ -39,6 +46,29 @@ const searchResults = ref({
   chapters: [],
   questions: []
 });
+
+// Get user info on mount
+onMounted(async () => {
+  try {
+    const response = await axios.get('http://localhost:5000/api/auth/me', { withCredentials: true });
+    if (response.data.user) {
+      welcomeName.value = response.data.user.full_name || response.data.user.username || 'Admin';
+      console.log('Admin user info loaded:', response.data.user);
+    }
+  } catch (error) {
+    console.error('Error fetching user info:', error);
+  }
+});
+
+const logout = async () => {
+  try {
+    await logoutUser();
+    router.push('/login');
+  } catch (error) {
+    console.error('Logout error:', error);
+    router.push('/login');
+  }
+};
 
 const search = async () => {
   const query = prompt('Enter search term for quizzes, users, questions, scores, subjects, or chapters:');

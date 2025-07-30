@@ -10,6 +10,9 @@ from routes.user_routes import user_bp
 from routes.score_routes import score_bp  
 from routes.search import search_bp
 from routes.optimized import api_bp
+from routes.export_routes import export_bp
+from routes.api_routes import api_routes_bp
+from routes.analytics_routes import analytics_bp
 from middleware.session_middleware import session_middleware
 from config import config
 import os
@@ -36,23 +39,29 @@ def create_app(config_name='default'):
     migrate = Migrate(app, db)
     
     # Initialize cache
+    cache_initialized = False
     try:
         from cache import get_cache
         cache = get_cache()
         cache.init_app(app)
+        cache_initialized = True
+        print("✅ Cache initialized successfully")
     except Exception as e:
-        print(f"Warning: Cache initialization failed: {e}")
+        print(f"⚠️  Cache initialization failed: {e}")
         # Continue without cache if Redis is not available
     
     # Register blueprints
     app.register_blueprint(admin_bp)
-    app.register_blueprint(auth_bp)
+    app.register_blueprint(auth_bp)  # No prefix - routes will be /login, /register, etc.
     app.register_blueprint(quiz_bp)
     app.register_blueprint(user_quiz_bp)
     app.register_blueprint(user_bp)
     app.register_blueprint(score_bp)
     app.register_blueprint(search_bp, url_prefix='/api/search')
     app.register_blueprint(api_bp)  # Optimized API v2 routes
+    app.register_blueprint(export_bp, url_prefix='/api')  # Export routes
+    app.register_blueprint(api_routes_bp, url_prefix='/api')  # Direct API routes
+    app.register_blueprint(analytics_bp)  # Analytics routes
     
     # Register session middleware
     @app.before_request
@@ -86,6 +95,25 @@ if __name__ == '__main__':
             db.session.add(admin)
             db.session.commit()
     
-
+    # Check Redis status
+    redis_status = "✅ Running"
+    try:
+        import redis
+        r = redis.Redis(host='localhost', port=6379, db=0)
+        r.ping()
+    except Exception as e:
+        redis_status = "❌ Not running"
     
-    app.run(debug=True)
+    print("🚀 Starting Quiz Master Server...")
+    print("📍 Server will be available at: http://localhost:5000")
+    print("👤 Default admin credentials:")
+    print("   Username: admin@quizmaster.com")
+    print("   Password: admin123")
+    print(f"🔴 Redis Status: {redis_status}")
+    
+    if "✅" in redis_status:
+        print("🎉 Full functionality available (caching + background tasks)")
+    else:
+        print("⚠️  Limited functionality (no caching or background tasks)")
+    
+    app.run(debug=True, host='0.0.0.0', port=5000)

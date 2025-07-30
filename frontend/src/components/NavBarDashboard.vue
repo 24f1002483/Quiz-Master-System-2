@@ -20,18 +20,24 @@ const props = defineProps({
   onSearch: { type: Function, required: true },
 });
 const navLinks = computed(() => {
+  console.log('NavBarDashboard userType:', props.userType);
   if (props.userType === 'admin') {
-    return [
+    const links = [
       { text: 'Home', to: '/admin' },
       { text: 'Quiz', to: '/admin/quizzes' },
+      { text: 'Export', to: '/admin/export' },
       { text: 'Summary', to: '/admin/summary' },
     ];
+    console.log('Admin nav links:', links);
+    return links;
   } else {
-    return [
+    const links = [
       { text: 'Home', to: '/user' },
       { text: 'Scores', to: '/user/scores' },
       { text: 'Summary', to: '/user/summary' },
     ];
+    console.log('User nav links:', links);
+    return links;
   }
 });
 const showLogout = true;

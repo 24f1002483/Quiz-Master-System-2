@@ -1,6 +1,16 @@
 <template>
   <div class="subject-card">
-    <h3>{{ subject.name }}</h3>
+    <div class="subject-header">
+      <h3>{{ subject.name }}</h3>
+      <div class="subject-actions">
+        <button class="edit-subject-btn" @click="handleEditSubject" title="Edit Subject">
+          ✏️
+        </button>
+        <button class="delete-subject-btn" @click="handleDeleteSubject" title="Delete Subject">
+          🗑️
+        </button>
+      </div>
+    </div>
     <div class="table-container">
       <table>
         <thead>
@@ -26,12 +36,24 @@
   </div>
 </template>
 <script setup>
-defineProps(['subject']);
-const emit = defineEmits(['edit-chapter', 'delete-chapter', 'add-chapter']);
+const props = defineProps(['subject']);
+const emit = defineEmits(['edit-chapter', 'delete-chapter', 'add-chapter', 'edit', 'delete']);
 
 const handleEditChapter = (chapter) => {
   console.log('Edit button clicked for chapter:', chapter);
   emit('edit-chapter', chapter);
+};
+
+const handleEditSubject = () => {
+  console.log('Edit button clicked for subject:', props.subject);
+  emit('edit', props.subject);
+};
+
+const handleDeleteSubject = () => {
+  if (confirm(`Are you sure you want to delete the subject "${props.subject.name}"? This will also delete all its chapters and quizzes.`)) {
+    console.log('Delete button clicked for subject:', props.subject);
+    emit('delete', props.subject.id);
+  }
 };
 </script>
 <style scoped>
@@ -47,14 +69,51 @@ const handleEditChapter = (chapter) => {
   border: 1px solid #e0e7ff;
 }
 
-.subject-card h3 {
+.subject-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e0e7ff;
+}
+
+.subject-header h3 {
   color: #2c3e50;
   font-size: 1.4rem;
   font-weight: 700;
   margin: 0;
-  text-align: center;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #e0e7ff;
+  flex: 1;
+}
+
+.subject-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.edit-subject-btn,
+.delete-subject-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
+.edit-subject-btn:hover {
+  background: #e0e7ff;
+  transform: scale(1.1);
+}
+
+.delete-subject-btn:hover {
+  background: #ffe0e0;
+  transform: scale(1.1);
 }
 
 .table-container {

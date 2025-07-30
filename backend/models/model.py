@@ -118,7 +118,6 @@ class Quiz(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
     questions = db.relationship('Question', backref='quiz', lazy=True)
-    chapter = db.relationship('Chapter', backref='quizzes')
 
     def is_available(self):
         now = datetime.utcnow()
@@ -306,8 +305,8 @@ class UserQuizAttempt(db.Model):
     status = db.Column(db.String(32), default='in_progress')
     start_time = db.Column(db.DateTime, default=datetime.utcnow)
     end_time = db.Column(db.DateTime)
-    user = db.relationship('User', backref='quiz_attempts')
-    quiz = db.relationship('Quiz', backref='user_attempts')
+    user = db.relationship('User', backref='quiz_attempts', lazy=True)
+    quiz = db.relationship('Quiz', backref='user_attempts', lazy=True)
     answers = db.relationship('UserAnswer', backref='user_quiz_attempt', cascade='all, delete-orphan')
     
     def serialize(self):
@@ -334,7 +333,7 @@ class UserAnswer(db.Model):
     selected_option = db.Column(db.Integer)  # 1-4
     is_correct = db.Column(db.Boolean)
     time_spent = db.Column(db.Integer)  # in seconds
-    question = db.relationship('Question')
+    question = db.relationship('Question', lazy=True)
     
     def serialize(self):
         return {
