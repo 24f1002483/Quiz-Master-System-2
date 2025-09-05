@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required
 from models.model import User, Quiz, Subject
 # from cache import cache_decorator, rate_limit_decorator  # Temporarily disabled
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 api_bp = Blueprint('api', __name__, url_prefix='/api/v2')
 
 @api_bp.route('/subjects', methods=['GET'])
@@ -25,8 +25,8 @@ def get_quizzes():
     time.sleep(0.7)  # Simulate DB query
     quizzes = Quiz.query.filter(
         Quiz.is_active == True,
-        Quiz.start_date <= datetime.utcnow(),
-        Quiz.end_date >= datetime.utcnow()
+        Quiz.start_date <= datetime.now(timezone.utc),
+        Quiz.end_date >= datetime.now(timezone.utc)
     ).all()
     return jsonify([q.serialize() for q in quizzes])
 

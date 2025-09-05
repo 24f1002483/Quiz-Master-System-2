@@ -1,11 +1,9 @@
-2025-07-30 20:12:43,634 - INFO - 🚀 Daily Reminders System - Email Only
-2025-07-30 20:12:43,635 - INFO - ==================================================
-2025-07-30 20:12:43,635 - INFO - 🧪 Running single reminder test...
-2025-07-30 20:12:43,636 - INFO - 🔍 Checking environment configuration...
-2025-07-30 20:12:43,636 - ERROR - ❌ Missing required environment variables: EMAIL_FROM, SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD
-2025-07-30 20:12:43,637 - INFO - 📧 Please set up your email configuration in .env file:
-2025-07-30 20:12:43,637 - INFO -    EMAIL_FROM=your-email@gmail.com
-2025-07-30 20:12:43,638 - INFO -    SMTP_HOST=smtp.gmail.com
-2025-07-30 20:12:43,638 - INFO -    SMTP_PORT=587
-2025-07-30 20:12:43,638 - INFO -    SMTP_USERNAME=your-email@gmail.com
-2025-07-30 20:12:43,639 - INFO -    SMTP_PASSWORD=your-app-password
+2025-09-05 12:30:51,660 - INFO - Daily Reminders System - Email Only
+2025-09-05 12:30:51,661 - INFO - ==================================================
+2025-09-05 12:30:51,661 - ERROR - Missing required environment variables: SMTP_USERNAME, SMTP_PASSWORD
+2025-09-05 12:30:51,663 - INFO - Please set up your email configuration in .env file:
+2025-09-05 12:30:51,663 - INFO -    EMAIL_FROM=your-email@gmail.com
+2025-09-05 12:30:51,665 - INFO -    SMTP_HOST=smtp.gmail.com
+2025-09-05 12:30:51,665 - INFO -    SMTP_PORT=587
+2025-09-05 12:30:51,666 - INFO -    SMTP_USERNAME=your-email@gmail.com
+2025-09-05 12:30:51,668 - INFO -    SMTP_PASSWORD=your-app-password

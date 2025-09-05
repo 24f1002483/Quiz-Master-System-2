@@ -201,7 +201,7 @@ class Score(db.Model):
             'percentage': self.percentage,
             'time_taken': self.time_taken,
             'attempt_number': self.attempt_number,
-            'timestamp': self.timestamp.isoformat(),
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
             'passed': self.passed
         }
 
@@ -305,6 +305,7 @@ class UserQuizAttempt(db.Model):
     status = db.Column(db.String(32), default='in_progress')
     start_time = db.Column(db.DateTime, default=datetime.utcnow)
     end_time = db.Column(db.DateTime)
+    time_taken = db.Column(db.Integer)  # in seconds
     user = db.relationship('User', backref='quiz_attempts', lazy=True)
     quiz = db.relationship('Quiz', backref='user_attempts', lazy=True)
     answers = db.relationship('UserAnswer', backref='user_quiz_attempt', cascade='all, delete-orphan')

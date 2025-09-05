@@ -2,14 +2,14 @@
   <div v-if="isVisible" class="search-results-overlay" @click="closeOnOverlayClick">
     <div class="search-results-modal" @click.stop>
       <div class="search-header">
-        <h2>🔍 Search Results for "{{ searchQuery }}"</h2>
+        <h2>Search Results for "{{ searchQuery }}"</h2>
         <button @click="close" class="close-btn">×</button>
       </div>
       
       <div class="search-sections">
         <!-- Quizzes Section -->
         <div class="search-section">
-          <h3>📚 Quizzes ({{ quizzes.length }})</h3>
+          <h3>Quizzes ({{ quizzes.length }})</h3>
           <div class="search-grid">
             <div v-for="quiz in quizzes" :key="quiz.id" class="search-item quiz-item">
               <h4>{{ quiz.title }}</h4>
@@ -168,7 +168,13 @@ const closeOnOverlayClick = (event) => {
 
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A';
-  return new Date(dateString).toLocaleDateString();
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+    return date.toLocaleDateString();
+  } catch (error) {
+    return 'Invalid Date';
+  }
 };
 </script>
 

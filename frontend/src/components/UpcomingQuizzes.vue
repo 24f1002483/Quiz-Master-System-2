@@ -50,8 +50,13 @@ export default {
     },
     formatDate(dateStr) {
       if (!dateStr) return 'N/A'
-      const date = new Date(dateStr)
-      return date.toLocaleDateString()
+      try {
+        const date = new Date(dateStr)
+        if (isNaN(date.getTime())) return 'Invalid Date'
+        return date.toLocaleDateString()
+      } catch (error) {
+        return 'Invalid Date'
+      }
     },
     formatDuration(seconds) {
       if (!seconds) return '00:00'

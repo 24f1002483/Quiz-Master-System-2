@@ -22,8 +22,8 @@
         <div class="quiz-info">
           <span class="duration">Duration: {{ quiz.time_duration }} minutes</span>
           <span class="dates">
-            <span>Start: {{ new Date(quiz.start_date).toLocaleString() }}</span><br>
-            <span>End: {{ new Date(quiz.end_date).toLocaleString() }}</span>
+            <span>Start: {{ formatDate(quiz.start_date) }}</span><br>
+            <span>End: {{ formatDate(quiz.end_date) }}</span>
           </span>
           <span class="status" :class="{ 'available': quiz.is_available }">
             {{ quiz.is_available ? 'Available' : 'Not Available' }}
@@ -50,10 +50,14 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { formatDateTime } from '../utils/dateUtils.js'
 
 const quizzes = ref([])
 const loading = ref(true)
 const error = ref(null)
+
+// Use utility function for date formatting
+const formatDate = formatDateTime
 
 const fetchQuizzes = async () => {
   try {

@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.model import db, Quiz, UserQuizAttempt, User, Question, Role
 from sqlalchemy import func, desc
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 analytics_bp = Blueprint('analytics', __name__, url_prefix='/api')
 
@@ -57,7 +57,7 @@ def get_recent_activity():
             UserQuizAttempt.status == 'completed',
             User.role != Role.ADMIN  # Exclude admin users from recent activity
         ).order_by(
-            desc(UserQuizAttempt.start_time)
+            desc(UserQuizAttempt.end_time)
         ).limit(10).all()
         
         activity_list = []
@@ -70,7 +70,7 @@ def get_recent_activity():
                 'user_name': username,
                 'quiz_title': quiz_title,
                 'score': score_percentage,
-                'completed_at': attempt.start_time.isoformat()
+                'completed_at': attempt.end_time.isoformat() if attempt.end_time else attempt.start_time.isoformat()
             })
         
         return jsonify(activity_list)
@@ -238,7 +238,7 @@ def get_daily_activity():
     """Get daily quiz completion activity for the last 30 days"""
     try:
         # Get daily activity for last 30 days
-        end_date = datetime.utcnow()
+        end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=30)
         
         daily_activity = db.session.query(

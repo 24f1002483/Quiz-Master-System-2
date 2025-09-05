@@ -1,7 +1,7 @@
 <template>
   <div v-if="showWarning" class="session-warning">
     <div class="warning-content">
-      <div class="warning-icon">⚠️</div>
+      <div class="warning-icon">Warning</div>
       <div class="warning-text">
         <h3>Session Timeout Warning</h3>
         <p>Your session will expire in {{ remainingMinutes }} minutes due to inactivity.</p>

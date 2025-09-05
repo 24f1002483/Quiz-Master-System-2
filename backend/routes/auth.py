@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, unset_jwt_cookies, set_access_cookies, set_refresh_cookies
 from models.model import db, User
 from middleware.session_middleware import update_user_activity, clear_user_session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -62,7 +62,7 @@ def register():
         return jsonify({'message': 'Username already exists'}), 409
     dob_date = datetime.strptime(dob, '%Y-%m-%d').date() if dob else None
     if dob_date:
-        today = datetime.utcnow().date()
+        today = datetime.now(timezone.utc).date()
         age = today.year - dob_date.year - ((today.month, today.day) < (dob_date.month, dob_date.day))
         if age < 5:
             return jsonify({'message': 'User must be at least 5 years old to register.'}), 400
@@ -125,7 +125,7 @@ def login():
         set_access_cookies(resp, access_token)
         set_refresh_cookies(resp, refresh_token)
         
-        user.last_login = datetime.utcnow()
+        user.last_login = datetime.now(timezone.utc)
         db.session.commit()
         return resp, 200
 

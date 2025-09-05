@@ -95,8 +95,13 @@ const fetchScores = async () => {
 
 const formatDate = (dateString) => {
   if (!dateString) return 'xx/xx/yyyy';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-GB'); // Format as dd/mm/yyyy
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+    return date.toLocaleDateString('en-GB'); // Format as dd/mm/yyyy
+  } catch (error) {
+    return 'Invalid Date';
+  }
 };
 
 const logout = async () => {

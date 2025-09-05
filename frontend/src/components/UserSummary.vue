@@ -1,17 +1,17 @@
 <template>
   <div class="user-summary">
     <header class="summary-header">
-      <h1>📊 Your Learning Summary</h1>
+      <h1>Your Learning Summary</h1>
       <p class="summary-subtitle">Comprehensive analysis of your quiz performance and progress</p>
     </header>
 
     <main class="summary-content">
       <!-- Key Performance Indicators -->
       <section class="kpi-section">
-        <h2>🎯 Key Performance Indicators</h2>
+        <h2>Key Performance Indicators</h2>
         <div class="kpi-grid">
           <div class="kpi-card primary">
-            <div class="kpi-icon">📈</div>
+            <div class="kpi-icon">Chart</div>
             <div class="kpi-content">
               <div class="kpi-value">{{ userStats.averageScore }}%</div>
               <div class="kpi-label">Overall Average</div>
@@ -22,7 +22,7 @@
           </div>
           
           <div class="kpi-card success">
-            <div class="kpi-icon">🏆</div>
+            <div class="kpi-icon">Trophy</div>
             <div class="kpi-content">
               <div class="kpi-value">{{ userStats.bestScore }}%</div>
               <div class="kpi-label">Best Score</div>
@@ -31,7 +31,7 @@
           </div>
           
           <div class="kpi-card info">
-            <div class="kpi-icon">📝</div>
+            <div class="kpi-icon">Note</div>
             <div class="kpi-content">
               <div class="kpi-value">{{ userStats.totalQuizzesTaken }}</div>
               <div class="kpi-label">Quizzes Completed</div>
@@ -40,7 +40,7 @@
           </div>
           
           <div class="kpi-card warning">
-            <div class="kpi-icon">📚</div>
+            <div class="kpi-icon">Books</div>
             <div class="kpi-content">
               <div class="kpi-value">{{ userStats.subjectsCovered }}</div>
               <div class="kpi-label">Subjects Covered</div>
@@ -667,7 +667,14 @@ const getPerformanceLabel = (percentage) => {
 };
 
 const formatDate = (timestamp) => {
-  return new Date(timestamp).toLocaleDateString();
+  if (!timestamp) return 'N/A';
+  try {
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+    return date.toLocaleDateString();
+  } catch (error) {
+    return 'Invalid Date';
+  }
 };
 
 onMounted(() => {

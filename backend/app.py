@@ -18,6 +18,7 @@ from config import config
 import os
 from flask_migrate import Migrate
 from flask import send_from_directory
+from datetime import datetime
 
 def create_app(config_name='default'):
     app = Flask(__name__)
@@ -45,9 +46,9 @@ def create_app(config_name='default'):
         cache = get_cache()
         cache.init_app(app)
         cache_initialized = True
-        print("✅ Cache initialized successfully")
+        print("Cache initialized successfully")
     except Exception as e:
-        print(f"⚠️  Cache initialization failed: {e}")
+        print(f"Cache initialization failed: {e}")
         # Continue without cache if Redis is not available
     
     # Register blueprints
@@ -78,6 +79,36 @@ def create_app(config_name='default'):
     def static_proxy(path):
         return send_from_directory('../frontend/dist', path)
 
+    @app.route('/api/health')
+    def health_check():
+        """Health check endpoint for Docker health checks"""
+        try:
+            # Check database connection
+            db.session.execute('SELECT 1')
+            
+            # Check Redis connection if available
+            redis_status = "healthy"
+            try:
+                from cache import get_cache
+                cache = get_cache()
+                cache.get('health_check')
+            except:
+                redis_status = "unavailable"
+            
+            return {
+                'status': 'healthy',
+                'timestamp': datetime.utcnow().isoformat(),
+                'database': 'connected',
+                'redis': redis_status,
+                'version': '1.0.0'
+            }, 200
+        except Exception as e:
+            return {
+                'status': 'unhealthy',
+                'error': str(e),
+                'timestamp': datetime.utcnow().isoformat()
+            }, 500
+
     return app
 
 if __name__ == '__main__':
@@ -96,24 +127,24 @@ if __name__ == '__main__':
             db.session.commit()
     
     # Check Redis status
-    redis_status = "✅ Running"
+    redis_status = "Running"
     try:
         import redis
         r = redis.Redis(host='localhost', port=6379, db=0)
         r.ping()
     except Exception as e:
-        redis_status = "❌ Not running"
+        redis_status = "Not running"
     
-    print("🚀 Starting Quiz Master Server...")
-    print("📍 Server will be available at: http://localhost:5000")
-    print("👤 Default admin credentials:")
+    print("Starting Quiz Master Server...")
+    print("Server will be available at: http://localhost:5000")
+    print("Default admin credentials:")
     print("   Username: admin@quizmaster.com")
     print("   Password: admin123")
-    print(f"🔴 Redis Status: {redis_status}")
+    print(f"Redis Status: {redis_status}")
     
-    if "✅" in redis_status:
-        print("🎉 Full functionality available (caching + background tasks)")
+    if "Running" in redis_status:
+        print("Full functionality available (caching + background tasks)")
     else:
-        print("⚠️  Limited functionality (no caching or background tasks)")
+        print("Limited functionality (no caching or background tasks)")
     
     app.run(debug=True, host='0.0.0.0', port=5000)

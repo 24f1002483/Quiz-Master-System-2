@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.model import db, UserQuizAttempt, UserAnswer
-from datetime import datetime
+from datetime import datetime, timezone
 
 score_bp = Blueprint('score', __name__, url_prefix='/api/scores')
 
@@ -44,7 +44,7 @@ def submit_quiz():
         # Update attempt with final score
         attempt.score = correct_answers
         attempt.total_questions = total_questions
-        attempt.end_time = datetime.utcnow()
+        attempt.end_time = datetime.now(timezone.utc)
         attempt.status = 'completed'
         
         db.session.commit()

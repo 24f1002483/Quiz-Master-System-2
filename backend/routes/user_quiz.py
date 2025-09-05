@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from datetime import datetime
+from datetime import datetime, timezone
 from models.model import db, Quiz, UserQuizAttempt
 from functools import wraps
 
@@ -11,7 +11,7 @@ user_quiz_bp = Blueprint('user_quiz', __name__, url_prefix='/api/user/quiz')
 @jwt_required()
 def get_available_quizzes():
     user_id = get_jwt_identity()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     # Get quizzes that are active and within their scheduled time
     quizzes = Quiz.query.filter(
@@ -31,7 +31,7 @@ def get_available_quizzes():
 def start_quiz(quiz_id):
     user_id = get_jwt_identity()
     quiz = Quiz.query.get_or_404(quiz_id)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     # Check if quiz is available
     if not quiz.is_available():

@@ -18,13 +18,17 @@ def is_email_enabled():
 
 def get_required_env_vars():
     """Get required environment variables for email notifications"""
-    return [
-        'EMAIL_FROM',
-        'SMTP_HOST', 
-        'SMTP_PORT',
-        'SMTP_USERNAME',
-        'SMTP_PASSWORD'
-    ]
+    # For MailHog and development, username/password are optional
+    smtp_host = os.getenv('SMTP_HOST', '')
+    smtp_port = os.getenv('SMTP_PORT', '587')
+    
+    required = ['EMAIL_FROM', 'SMTP_HOST', 'SMTP_PORT']
+    
+    # Only require username/password for production SMTP servers
+    if smtp_port != '1025' and 'mailhog' not in smtp_host.lower():
+        required.extend(['SMTP_USERNAME', 'SMTP_PASSWORD'])
+    
+    return required
 
 def validate_configuration():
     """Validate that all required environment variables are set"""

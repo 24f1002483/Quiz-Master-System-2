@@ -5,7 +5,7 @@
 
       <!-- Subject Management Section -->
       <section class="subjects-section">
-        <h2>📚 Subject Management</h2>
+        <h2>Subject Management</h2>
         <p class="section-description">Manage subjects and their chapters</p>
         
         <!-- Debug info -->

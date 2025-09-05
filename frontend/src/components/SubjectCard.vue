@@ -4,10 +4,10 @@
       <h3>{{ subject.name }}</h3>
       <div class="subject-actions">
         <button class="edit-subject-btn" @click="handleEditSubject" title="Edit Subject">
-          ✏️
+          Edit
         </button>
         <button class="delete-subject-btn" @click="handleDeleteSubject" title="Delete Subject">
-          🗑️
+          Delete
         </button>
       </div>
     </div>

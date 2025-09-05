@@ -2,6 +2,11 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.model import db, User, Subject, Chapter, Quiz, Question, Role
 from functools import wraps
+from notification_services import send_email_internal
+import logging
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
@@ -123,7 +128,90 @@ def create_quiz():
     )
     db.session.add(new_quiz)
     db.session.commit()
+    
+    # Send immediate notifications to users about the new quiz
+    try:
+        send_new_quiz_notifications(new_quiz)
+        logger.info(f"New quiz notifications sent for quiz: {new_quiz.title}")
+    except Exception as e:
+        logger.error(f"Failed to send new quiz notifications: {e}")
+        # Don't fail the quiz creation if notifications fail
+    
     return jsonify(new_quiz.serialize()), 201
+
+def send_new_quiz_notifications(quiz):
+    """Send immediate notifications to users about a new quiz"""
+    try:
+        # Get all active users
+        users = User.query.filter_by(is_active=True, role=Role.USER).all()
+        
+        # Get quiz details
+        subject = quiz.chapter.subject.name
+        chapter = quiz.chapter.name
+        start_time = quiz.start_date.strftime("%b %d, %Y at %H:%M")
+        
+        successful_notifications = 0
+        failed_notifications = 0
+        
+        for user in users:
+            try:
+                # Generate personalized message
+                message = f"""🎉 New Quiz Available!
+
+Hello {user.full_name or user.username},
+
+A new quiz has just been created and is now available for you to take!
+
+📚 Quiz Details:
+• Title: {quiz.title}
+• Subject: {subject}
+• Chapter: {chapter}
+• Start Date: {start_time}
+• Duration: {quiz.time_duration} minutes
+• Description: {quiz.description or 'No description provided'}
+
+🎯 Ready to test your knowledge? Log in now and take the quiz!
+
+Best regards,
+Quiz Master 2 Team"""
+
+                # Send notification based on user preference
+                if user.notification_preference == 'email':
+                    send_email_internal(
+                        recipient=user.username,
+                        subject=f"🆕 New Quiz: {quiz.title}",
+                        body=message
+                    )
+                    successful_notifications += 1
+                    
+                elif user.notification_preference == 'sms' and user.phone:
+                    # TODO: Implement SMS sending
+                    logger.info(f"SMS notification would be sent to {user.phone}")
+                    successful_notifications += 1
+                    
+                elif user.notification_preference == 'gchat':
+                    # TODO: Implement Google Chat webhook
+                    logger.info(f"Google Chat notification would be sent to {user.username}")
+                    successful_notifications += 1
+                    
+                else:
+                    # Fallback to email
+                    send_email_internal(
+                        recipient=user.username,
+                        subject=f"🆕 New Quiz: {quiz.title}",
+                        body=message
+                    )
+                    successful_notifications += 1
+                    
+            except Exception as e:
+                logger.error(f"Failed to send notification to {user.username}: {e}")
+                failed_notifications += 1
+        
+        logger.info(f"New quiz notifications: {successful_notifications} sent, {failed_notifications} failed")
+        
+    except Exception as e:
+        logger.error(f"Error in send_new_quiz_notifications: {e}")
+        raise
 
 @admin_bp.route('/quizzes/<int:id>', methods=['PUT'])
 @jwt_required()
@@ -139,9 +227,13 @@ def update_quiz(id):
     if 'end_date' in data:
         quiz.end_date = datetime.fromisoformat(data['end_date'].replace('Z', '+00:00'))
     
+    # Update all fields
     quiz.title = data.get('title', quiz.title)
-    quiz.time_duration = data.get('duration', quiz.time_duration)
+    quiz.description = data.get('description', quiz.description)
+    quiz.chapter_id = data.get('chapter_id', quiz.chapter_id)
+    quiz.time_duration = data.get('time_duration', data.get('duration', quiz.time_duration))
     quiz.is_active = data.get('is_active', quiz.is_active)
+    
     db.session.commit()
     return jsonify(quiz.serialize()), 200
 
@@ -151,34 +243,78 @@ def update_quiz(id):
 def delete_quiz(id):
     try:
         quiz = Quiz.query.get_or_404(id)
+        quiz_title = quiz.title  # Store for logging
         
-        # Delete all user quiz attempts associated with this quiz first
-        # (this will cascade delete UserAnswer records)
-        from models.model import UserQuizAttempt
+        logger.info(f"Starting deletion of quiz: {quiz_title} (ID: {id})")
+        
+        # Import all related models
+        from models.model import UserQuizAttempt, UserAnswer, Score
+        
+        # Step 1: Delete all UserAnswer records for this quiz
+        # Get all user quiz attempts for this quiz first
         attempts = UserQuizAttempt.query.filter_by(quiz_id=id).all()
+        attempt_ids = [attempt.id for attempt in attempts]
+        
+        if attempt_ids:
+            # Delete all user answers for these attempts
+            user_answers = UserAnswer.query.filter(UserAnswer.user_quiz_attempt_id.in_(attempt_ids)).all()
+            logger.info(f"Deleting {len(user_answers)} user answers")
+            for answer in user_answers:
+                db.session.delete(answer)
+            db.session.flush()  # Flush to ensure answers are deleted before attempts
+        
+        # Step 2: Delete all user quiz attempts for this quiz
+        logger.info(f"Deleting {len(attempts)} quiz attempts")
         for attempt in attempts:
             db.session.delete(attempt)
+        db.session.flush()  # Flush to ensure attempts are deleted
         
-        # Delete all scores associated with this quiz
-        from models.model import Score
+        # Step 3: Delete all scores associated with this quiz
         scores = Score.query.filter_by(quiz_id=id).all()
+        logger.info(f"Deleting {len(scores)} score records")
         for score in scores:
             db.session.delete(score)
+        db.session.flush()  # Flush to ensure scores are deleted
         
-        # Delete all questions associated with this quiz
+        # Step 4: Delete all questions associated with this quiz
         questions = Question.query.filter_by(quiz_id=id).all()
+        logger.info(f"Deleting {len(questions)} questions")
         for question in questions:
             db.session.delete(question)
+        db.session.flush()  # Flush to ensure questions are deleted
         
-        # Now delete the quiz
+        # Step 5: Finally delete the quiz itself
+        logger.info(f"Deleting quiz: {quiz_title}")
         db.session.delete(quiz)
+        
+        # Commit all changes
         db.session.commit()
         
-        return jsonify({"message": "Quiz and all associated data deleted successfully"}), 200
+        logger.info(f"Successfully deleted quiz: {quiz_title} and all associated data")
+        return jsonify({
+            "message": f"Quiz '{quiz_title}' and all associated data deleted successfully",
+            "deleted_items": {
+                "quiz": 1,
+                "questions": len(questions),
+                "attempts": len(attempts),
+                "answers": len(user_answers) if attempt_ids else 0,
+                "scores": len(scores)
+            }
+        }), 200
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({"message": f"Error deleting quiz: {str(e)}"}), 500
+        error_msg = f"Error deleting quiz: {str(e)}"
+        logger.error(error_msg)
+        logger.error(f"Exception type: {type(e).__name__}")
+        
+        # Provide more specific error messages
+        if "foreign key constraint" in str(e).lower():
+            error_msg = "Cannot delete quiz: There are related records that prevent deletion. Please contact administrator."
+        elif "not found" in str(e).lower():
+            error_msg = "Quiz not found or already deleted."
+        
+        return jsonify({"message": error_msg, "error_details": str(e)}), 500
 
 # Questions CRUD
 @admin_bp.route('/questions', methods=['POST'])
@@ -237,6 +373,91 @@ def delete_question(id):
 def get_users():
     users = User.query.all()
     return jsonify([user.serialize() for user in users]), 200
+
+@admin_bp.route('/users/count', methods=['GET'])
+@jwt_required()
+@admin_required
+def get_users_count():
+    """Get user count for admin dashboard analytics"""
+    try:
+        total_users = User.query.count()
+        active_users = User.query.filter_by(is_active=True).count()
+        admin_users = User.query.filter_by(role=Role.ADMIN).count()
+        regular_users = User.query.filter_by(role=Role.USER).count()
+        
+        # Return both detailed stats and simple count for compatibility
+        return jsonify({
+            'count': total_users,  # Simple count for frontend compatibility
+            'total_users': total_users,
+            'active_users': active_users,
+            'admin_users': admin_users,
+            'regular_users': regular_users
+        }), 200
+    except Exception as e:
+        logger.error(f"Error getting user count: {e}")
+        return jsonify({'error': 'Failed to get user count'}), 500
+
+@admin_bp.route('/analytics/overview', methods=['GET'])
+@jwt_required()
+@admin_required
+def get_analytics_overview():
+    """Get comprehensive analytics overview for admin dashboard"""
+    try:
+        from models.model import UserQuizAttempt, Score
+        
+        # User statistics
+        total_users = User.query.count()
+        active_users = User.query.filter_by(is_active=True).count()
+        admin_users = User.query.filter_by(role=Role.ADMIN).count()
+        regular_users = User.query.filter_by(role=Role.USER).count()
+        
+        # Quiz statistics
+        total_quizzes = Quiz.query.count()
+        active_quizzes = Quiz.query.filter_by(is_active=True).count()
+        
+        # Subject and chapter statistics
+        total_subjects = Subject.query.count()
+        total_chapters = Chapter.query.count()
+        
+        # Quiz attempt statistics
+        total_attempts = UserQuizAttempt.query.count()
+        completed_attempts = UserQuizAttempt.query.filter_by(status='completed').count()
+        
+        # Score statistics
+        total_scores = Score.query.count()
+        if total_scores > 0:
+            avg_score = db.session.query(db.func.avg(Score.percentage)).scalar()
+            avg_score = round(float(avg_score), 2) if avg_score else 0
+        else:
+            avg_score = 0
+        
+        return jsonify({
+            'users': {
+                'total': total_users,
+                'active': active_users,
+                'admins': admin_users,
+                'regular': regular_users
+            },
+            'quizzes': {
+                'total': total_quizzes,
+                'active': active_quizzes
+            },
+            'content': {
+                'subjects': total_subjects,
+                'chapters': total_chapters
+            },
+            'attempts': {
+                'total': total_attempts,
+                'completed': completed_attempts
+            },
+            'scores': {
+                'total': total_scores,
+                'average_percentage': avg_score
+            }
+        }), 200
+    except Exception as e:
+        logger.error(f"Error getting analytics overview: {e}")
+        return jsonify({'error': 'Failed to get analytics overview'}), 500
 
 @admin_bp.route('/users/<int:id>', methods=['PUT'])
 @jwt_required()

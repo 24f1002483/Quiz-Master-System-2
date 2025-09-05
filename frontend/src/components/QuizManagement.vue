@@ -4,7 +4,17 @@
 
     <div class="quiz-cards-container">
       <div v-for="quiz in quizzes" :key="quiz.id" class="quiz-card">
-        <h3>{{ quiz.title }}</h3>
+        <div class="quiz-header">
+          <h3>{{ quiz.title }}</h3>
+          <div class="quiz-actions-header">
+            <button class="edit-quiz-btn" @click="handleEditQuiz(quiz)" title="Edit Quiz">
+              Edit
+            </button>
+            <button class="delete-quiz-btn-header" @click="handleDeleteQuiz(quiz.id)" title="Delete Quiz">
+              Delete
+            </button>
+          </div>
+        </div>
         <p class="quiz-info">
           <span class="question-count">{{ quiz.questions ? quiz.questions.length : 0 }} questions</span>
           <span class="quiz-duration">{{ quiz.time_duration }} minutes</span>
@@ -39,7 +49,7 @@
         </div>
         <div class="quiz-actions">
           <button class="add-question-btn" @click="handleAddQuestion(quiz.id)">+ Question</button>
-           </div>
+        </div>
       </div>
     </div>
 
@@ -48,23 +58,41 @@
     <!-- Modals -->
     <NewQuizModal v-if="showAddQuiz" :chapters="chapters" @save="addQuiz" @cancel="showAddQuiz = false" />
     <NewQuestionModal v-if="showAddQuestion" :chapters="chapters" @save="addQuestion" @cancel="showAddQuestion = false" />
+    <EditQuestionModal 
+      v-if="showEditQuestion && selectedQuestion" 
+      :question="selectedQuestion" 
+      @save="editQuestion" 
+      @cancel="showEditQuestion = false; selectedQuestion = null" 
+    />
+    <EditQuizModal 
+      v-if="showEditQuiz && selectedQuiz" 
+      :quiz="selectedQuiz" 
+      :chapters="chapters"
+      @save="editQuiz" 
+      @cancel="showEditQuiz = false; selectedQuiz = null" 
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { fetchAllQuizzes, createQuiz, deleteQuiz } from '../services/quizService.js';
-import { createQuestion, deleteQuestion } from '../services/questionService.js';
+import { fetchAllQuizzes, createQuiz, deleteQuiz, updateQuiz } from '../services/quizService.js';
+import { createQuestion, deleteQuestion, updateQuestion } from '../services/questionService.js';
 import { fetchAllChapters } from '../services/chapterService.js';
 import NewQuizModal from './NewQuizModal.vue';
 import NewQuestionModal from './NewQuestionModal.vue';
+import EditQuestionModal from './EditQuestionModal.vue';
+import EditQuizModal from './EditQuizModal.vue';
 
 const quizzes = ref([]);
 const chapters = ref([]);
 const showAddQuiz = ref(false);
 const showAddQuestion = ref(false);
+const showEditQuestion = ref(false);
+const showEditQuiz = ref(false);
 const selectedQuizId = ref(null);
 const selectedQuiz = ref(null);
+const selectedQuestion = ref(null);
 
 const loadQuizzes = async () => {
   try {
@@ -99,17 +127,35 @@ const handleAddQuestion = (quizId) => {
   showAddQuestion.value = true;
 };
 
+const handleEditQuiz = (quiz) => {
+  console.log('Edit quiz clicked:', quiz);
+  selectedQuiz.value = quiz;
+  showEditQuiz.value = true;
+  console.log('Modal should show:', showEditQuiz.value);
+};
+
 const handleEditQuestion = (quizId, questionId) => {
-  // Implement edit question logic
-  console.log('Edit question:', quizId, questionId);
+  // Find the quiz and question to edit
+  const quiz = quizzes.value.find(q => q.id === quizId);
+  if (quiz && quiz.questions) {
+    const question = quiz.questions.find(q => q.id === questionId);
+    if (question) {
+      selectedQuestion.value = question;
+      selectedQuizId.value = quizId;
+      showEditQuestion.value = true;
+    }
+  }
 };
 
 const handleDeleteQuestion = async (quizId, questionId) => {
-  try {
-    await deleteQuestion(questionId);
-    await loadQuizzes();
-  } catch (error) {
-    alert('Error deleting question: ' + error);
+  if (confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
+    try {
+      await deleteQuestion(questionId);
+      await loadQuizzes();
+    } catch (error) {
+      console.error('Error deleting question:', error);
+      alert('Error deleting question: ' + error);
+    }
   }
 };
 
@@ -161,7 +207,32 @@ const addQuestion = async (question) => {
     showAddQuestion.value = false;
     await loadQuizzes();
   } catch (error) {
+    console.error('Error creating question:', error);
     alert('Error creating question: ' + error);
+  }
+};
+
+const editQuestion = async (questionData) => {
+  try {
+    await updateQuestion(questionData.id, questionData);
+    showEditQuestion.value = false;
+    selectedQuestion.value = null;
+    await loadQuizzes();
+  } catch (error) {
+    console.error('Error updating question:', error);
+    alert('Error updating question: ' + error);
+  }
+};
+
+const editQuiz = async (quizData) => {
+  try {
+    await updateQuiz(quizData.id, quizData);
+    showEditQuiz.value = false;
+    selectedQuiz.value = null;
+    await loadQuizzes();
+  } catch (error) {
+    console.error('Error updating quiz:', error);
+    alert('Error updating quiz: ' + error);
   }
 };
 
@@ -210,14 +281,53 @@ h2 {
   border: 1px solid #e0e7ff;
 }
 
-.quiz-card h3 {
-  color: #2c3e50;
-  margin: 0;
-  text-align: center;
-  font-size: 1.4rem;
-  font-weight: 700;
+.quiz-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding-bottom: 0.5rem;
   border-bottom: 2px solid #e0e7ff;
+  margin-bottom: 1rem;
+}
+
+.quiz-header h3 {
+  color: #2c3e50;
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  flex: 1;
+}
+
+.quiz-actions-header {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.edit-quiz-btn,
+.delete-quiz-btn-header {
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.5rem 0.8rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+}
+
+.edit-quiz-btn:hover {
+  background: #e0e7ff;
+  transform: scale(1.05);
+  color: #42b983;
+}
+
+.delete-quiz-btn-header:hover {
+  background: #ffe0e0;
+  transform: scale(1.05);
+  color: #e74c3c;
 }
 
 .quiz-info {
@@ -343,23 +453,7 @@ h2 {
   transition: background 0.2s, box-shadow 0.2s;
 }
 
-.delete-quiz-btn {
-  background: #e74c3c;
-  color: #fff;
-  font-weight: 600;
-  padding: 0.8rem 1.5rem;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.13);
-  transition: background 0.2s, box-shadow 0.2s;
-}
 
-.delete-quiz-btn:hover {
-  background: #c0392b;
-  box-shadow: 0 4px 16px rgba(231, 76, 60, 0.18);
-}
 
 .add-question-btn:hover {
   background: linear-gradient(90deg, #4f8cff 60%, #42b983 100%);

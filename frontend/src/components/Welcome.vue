@@ -9,9 +9,9 @@
     <h1>Welcome to Quiz Master!</h1>
     <p>Test your knowledge and track your progress. Please use the navigation bar to register or log in.</p>
     <div class="lively-graphic">
-      <span>🎉</span>
-      <span>🧠</span>
-      <span>🏆</span>
+      <span>Celebrate</span>
+      <span>Brain</span>
+      <span>Trophy</span>
     </div>
   </div>
 </template>

@@ -3,13 +3,13 @@
     <main class="dashboard-content">
       <!-- Analytics Section -->
       <section class="analytics-section">
-        <h2>📊 Export Analytics</h2>
+        <h2>Export Analytics</h2>
         <p class="section-description">Visualize export patterns and data trends</p>
         
         <div class="analytics-grid">
           <!-- Export Statistics -->
           <div class="analytics-card">
-            <h3>📈 Export Statistics</h3>
+            <h3>Export Statistics</h3>
             <div class="stats-grid">
               <div class="stat-item">
                 <span class="stat-number">{{ exportStats.totalExports }}</span>
@@ -32,7 +32,7 @@
 
           <!-- Export Type Distribution -->
           <div class="analytics-card">
-            <h3>📊 Export Types</h3>
+            <h3>Export Types</h3>
             <div class="chart-container">
               <canvas ref="exportTypeChart" width="400" height="200"></canvas>
             </div>
@@ -40,7 +40,7 @@
 
           <!-- Monthly Export Trend -->
           <div class="analytics-card">
-            <h3>📅 Monthly Trend</h3>
+            <h3>Monthly Trend</h3>
             <div class="chart-container">
               <canvas ref="monthlyTrendChart" width="400" height="200"></canvas>
             </div>
@@ -760,7 +760,14 @@ const formatFileSize = (bytes) => {
 };
 
 const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleString();
+  if (!dateString) return 'N/A';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+    return date.toLocaleString();
+  } catch (error) {
+    return 'Invalid Date';
+  }
 };
 
 // Load export history on mount

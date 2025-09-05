@@ -44,9 +44,10 @@ def send_email_internal(recipient, subject, body, attachment=None, attachment_na
         smtp_username = os.getenv('SMTP_USERNAME')
         smtp_password = os.getenv('SMTP_PASSWORD')
         
-        if not all([email_from, smtp_host, smtp_username, smtp_password]):
-            logger.error("Missing email configuration")
-            return "Missing email configuration"
+        # For MailHog and development servers, username/password might be empty
+        if not email_from or not smtp_host:
+            logger.error("Missing required email configuration (EMAIL_FROM, SMTP_HOST)")
+            return "Missing required email configuration"
         
         # Create message
         msg = MIMEMultipart()
@@ -63,13 +64,29 @@ def send_email_internal(recipient, subject, body, attachment=None, attachment_na
             part['Content-Disposition'] = f'attachment; filename="{attachment_name}"'
             msg.attach(part)
         
-        # Send email
-        with smtplib.SMTP(smtp_host, smtp_port) as server:
-            server.starttls()
-            server.login(smtp_username, smtp_password)
-            server.send_message(msg)
+        # Handle different SMTP configurations
+        if smtp_port == 465:
+            # Use SSL connection (Gmail, etc.)
+            import ssl
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL(smtp_host, smtp_port, context=context, timeout=15) as server:
+                if smtp_username and smtp_password:
+                    server.login(smtp_username, smtp_password)
+                server.send_message(msg)
+        elif smtp_port == 1025:
+            # MailHog or similar development SMTP (no authentication)
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+                # MailHog doesn't require authentication
+                server.send_message(msg)
+        else:
+            # Standard SMTP with STARTTLS (port 587, etc.)
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+                server.starttls()
+                if smtp_username and smtp_password:
+                    server.login(smtp_username, smtp_password)
+                server.send_message(msg)
         
-        logger.info(f"Email sent successfully to {recipient}")
+        logger.info(f"Email sent successfully to {recipient} via {smtp_host}:{smtp_port}")
         return f"Email sent successfully to {recipient}"
         
     except Exception as e:

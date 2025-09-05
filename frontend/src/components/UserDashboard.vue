@@ -18,31 +18,31 @@
     <main class="dashboard-content">
       <!-- User Performance Overview -->
       <section class="performance-overview">
-        <h2>📊 Your Performance Overview</h2>
+        <h2>Your Performance Overview</h2>
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="stat-icon">🎯</div>
+            <div class="stat-icon">Target</div>
             <div class="stat-content">
               <div class="stat-number">{{ userStats.totalQuizzesTaken }}</div>
               <div class="stat-label">Quizzes Taken</div>
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon">📈</div>
+            <div class="stat-icon">Chart</div>
             <div class="stat-content">
               <div class="stat-number">{{ userStats.averageScore }}%</div>
               <div class="stat-label">Average Score</div>
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon">🏆</div>
+            <div class="stat-icon">Trophy</div>
             <div class="stat-content">
               <div class="stat-number">{{ userStats.bestScore }}%</div>
               <div class="stat-label">Best Score</div>
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon">📚</div>
+            <div class="stat-icon">Books</div>
             <div class="stat-content">
               <div class="stat-number">{{ userStats.subjectsCovered }}</div>
               <div class="stat-label">Subjects Covered</div>
@@ -116,8 +116,8 @@
               <tr v-for="quiz in quizzes" :key="quiz.id">
                 <td>{{ quiz.id }}</td>
                 <td>{{ quiz.title }}</td>
-                <td>{{ new Date(quiz.start_date).toLocaleString() }}</td>
-                <td>{{ new Date(quiz.end_date).toLocaleString() }}</td>
+                <td>{{ formatDate(quiz.start_date) }}</td>
+                <td>{{ formatDate(quiz.end_date) }}</td>
                 <td>{{ quiz.time_duration }} minutes</td>
                 <td>
                   <span :class="{ 'available': quiz.is_available, 'unavailable': !quiz.is_available }">
@@ -159,7 +159,7 @@
             <tbody>
               <tr v-for="score in scores" :key="score.id">
                 <td>{{ score.quiz_title || 'Quiz' }}</td>
-                <td>{{ new Date(score.timestamp).toLocaleDateString() }}</td>
+                <td>{{ formatDate(score.timestamp) }}</td>
                 <td>{{ score.score }}/{{ score.total_questions }}</td>
                 <td>{{ score.percentage }}%</td>
                 <td>
@@ -198,6 +198,7 @@ import { useRouter } from 'vue-router';
 import axios from 'axios';
 import SearchResults from './SearchResults.vue';
 import Chart from 'chart.js/auto';
+import { formatDateTime, formatRelativeTime } from '../utils/dateUtils.js';
 
 const router = useRouter();
 const searchQuery = ref('');
@@ -308,11 +309,12 @@ const generateRecentActivity = () => {
   
   // Add recent quiz attempts
   scores.value.slice(0, 5).forEach(score => {
+    const timestamp = score.timestamp ? new Date(score.timestamp) : new Date();
     activities.push({
       id: `score-${score.id}`,
       icon: '📝',
       title: `Completed ${score.quiz_title || 'Quiz'} with ${score.percentage}%`,
-      timestamp: new Date(score.timestamp)
+      timestamp: isNaN(timestamp.getTime()) ? new Date() : timestamp
     });
   });
 
@@ -509,16 +511,9 @@ const getPerformanceLabel = (percentage) => {
   return 'Poor';
 };
 
-const formatTime = (timestamp) => {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diffInHours = (now - date) / (1000 * 60 * 60);
-  
-  if (diffInHours < 1) return 'Just now';
-  if (diffInHours < 24) return `${Math.floor(diffInHours)} hours ago`;
-  if (diffInHours < 48) return 'Yesterday';
-  return date.toLocaleDateString();
-};
+// Use utility functions for date formatting
+const formatDate = formatDateTime;
+const formatTime = formatRelativeTime;
 
 const logout = async () => {
   await logoutUser();

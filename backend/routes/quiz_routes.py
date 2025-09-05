@@ -4,12 +4,7 @@ from models.model import db, Subject, Chapter, Quiz, Question, User
 
 quiz_bp = Blueprint('quiz', __name__, url_prefix='/api/quiz')
 
-# COMMENTED OUT - Duplicate of optimized route in /api/v2/subjects
-# @quiz_bp.route('/subjects', methods=['GET'])
-# @jwt_required()
-# def get_subjects():
-#     subjects = Subject.query.all()
-#     return jsonify([subject.serialize() for subject in subjects])
+
 
 @quiz_bp.route('/chapters/<int:subject_id>', methods=['GET'])
 @jwt_required()
@@ -29,19 +24,9 @@ def get_quizzes_by_chapter(chapter_id):
     quizzes = Quiz.query.filter_by(chapter_id=chapter_id).all()
     return jsonify([quiz.serialize() for quiz in quizzes])
 
-# COMMENTED OUT - Duplicate of optimized route in /api/v2/quizzes
-# @quiz_bp.route('/quizzes', methods=['GET'])
-# @jwt_required()
-# def get_all_quizzes():
-#     quizzes = Quiz.query.all()
-#     return jsonify([quiz.serialize() for quiz in quizzes])
 
-# COMMENTED OUT - Duplicate of optimized route in /api/v2/quizzes/<int:quiz_id>
-# @quiz_bp.route('/quizzes/<int:quiz_id>', methods=['GET'])
-# @jwt_required()
-# def get_quiz_by_id(quiz_id):
-#     quiz = Quiz.query.get_or_404(quiz_id)
-#     return jsonify(quiz.serialize())
+
+
 
 @quiz_bp.route('/questions/<int:quiz_id>', methods=['GET'])
 @jwt_required()

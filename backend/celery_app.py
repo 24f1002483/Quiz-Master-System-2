@@ -103,164 +103,36 @@ def task_revoked_handler(sender=None, request=None, terminated=None, signum=None
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=300)
 def send_daily_reminders(self):
-    """Send daily quiz reminders to users with enhanced error handling"""
+    """Send enhanced daily quiz reminders to users"""
     try:
-        logger.info("Starting daily reminders task")
+        logger.info("Starting enhanced daily reminders task")
         
-        # Get quizzes starting in the next 24 hours
-        now = datetime.utcnow()
-        tomorrow = now + timedelta(days=1)
+        # Import enhanced reminders
+        from enhanced_daily_reminders import enhanced_daily_reminders_task
         
-        upcoming_quizzes = Quiz.query.filter(
-            Quiz.start_date >= now,
-            Quiz.start_date <= tomorrow,
-            Quiz.is_active == True
-        ).all()
-        
-        if not upcoming_quizzes:
-            logger.info("No upcoming quizzes for daily reminders")
-            return "No upcoming quizzes for daily reminders"
-        
-        # Group quizzes by subject/chapter
-        quiz_groups = {}
-        for quiz in upcoming_quizzes:
-            key = f"{quiz.chapter.subject.name} - {quiz.chapter.name}"
-            if key not in quiz_groups:
-                quiz_groups[key] = []
-            quiz_groups[key].append(quiz)
-        
-        # Get all active users
-        users = User.query.filter_by(is_active=True).all()
-        
-        successful_notifications = 0
-        failed_notifications = 0
-        
-        for user in users:
-            try:
-                # Prepare reminder message
-                message = "📚 Daily Quiz Reminder:\n\n"
-                message += f"Hello {user.username},\n\n"
-                message += "You have upcoming quizzes:\n\n"
-                
-                for group, quizzes in quiz_groups.items():
-                    message += f"👉 {group}:\n"
-                    for quiz in quizzes:
-                        start_time = quiz.start_date.strftime("%b %d, %Y at %H:%M UTC")
-                        message += f"  - {quiz.title} (Starts: {start_time}, Duration: {quiz.time_duration} mins)\n"
-                
-                message += "\nGood luck with your preparations!"
-                
-                # Send notification using configured method
-                # Send email notification
-                send_email.delay(
-                    recipient=user.email or user.username,
-                    subject="Daily Quiz Reminder",
-                    body=message
-                )
-                
-                successful_notifications += 1
-                
-            except Exception as e:
-                logger.error(f"Failed to send reminder to user {user.id}: {e}")
-                failed_notifications += 1
-        
-        result = f"Sent daily reminders: {successful_notifications} successful, {failed_notifications} failed"
-        logger.info(result)
+        # Execute enhanced reminders
+        result = enhanced_daily_reminders_task()
         return result
         
     except Exception as e:
-        logger.error(f"Error in daily reminders task: {str(e)}")
+        logger.error(f"Error in enhanced daily reminders task: {str(e)}")
         raise self.retry(exc=e, countdown=600, max_retries=3)
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=600)
 def generate_monthly_reports(self):
-    """Generate and send monthly performance reports with enhanced error handling"""
+    """Generate and send enhanced monthly performance reports"""
     try:
-        logger.info("Starting monthly reports generation")
+        logger.info("Starting enhanced monthly reports generation")
         
-        # Calculate date range (previous month)
-        today = datetime.utcnow()
-        first_day_of_month = today.replace(day=1)
-        last_month_end = first_day_of_month - timedelta(days=1)
-        last_month_start = last_month_end.replace(day=1)
+        # Import enhanced monthly reports
+        from enhanced_monthly_reports import enhanced_monthly_reports_task
         
-        # Get all active users
-        users = User.query.filter_by(is_active=True).all()
-        
-        successful_reports = 0
-        failed_reports = 0
-        
-        for user in users:
-            try:
-                # Get user's quiz attempts from last month
-                attempts = UserQuizAttempt.query.filter(
-                    UserQuizAttempt.user_id == user.id,
-                    UserQuizAttempt.end_time >= last_month_start,
-                    UserQuizAttempt.end_time <= last_month_end,
-                    UserQuizAttempt.status == 'completed'
-                ).all()
-                
-                if not attempts:
-                    logger.info(f"No activity for user {user.id} in {last_month_start.strftime('%B %Y')}")
-                    continue  # Skip users with no activity
-                
-                # Prepare report data
-                report_data = {
-                    "Total Quizzes Attempted": len(attempts),
-                    "Total Questions Answered": sum(a.total_questions for a in attempts),
-                    "Correct Answers": sum(a.score for a in attempts),
-                    "Overall Accuracy": f"{round((sum(a.score for a in attempts) / sum(a.total_questions for a in attempts)) * 100, 2)}%",
-                    "Average Time per Quiz": f"{round(sum(a.time_taken for a in attempts) / len(attempts) / 60, 2)} mins",
-                    "Quizzes by Subject": {}
-                }
-                
-                # Group by subject
-                subject_stats = {}
-                for attempt in attempts:
-                    subject = attempt.quiz.chapter.subject.name
-                    if subject not in subject_stats:
-                        subject_stats[subject] = {
-                            "count": 0,
-                            "total_questions": 0,
-                            "correct_answers": 0
-                        }
-                    subject_stats[subject]["count"] += 1
-                    subject_stats[subject]["total_questions"] += attempt.total_questions
-                    subject_stats[subject]["correct_answers"] += attempt.score
-                
-                # Calculate subject-wise stats
-                for subject, stats in subject_stats.items():
-                    report_data["Quizzes by Subject"][subject] = {
-                        "Quizzes Attempted": stats["count"],
-                        "Accuracy": f"{round((stats['correct_answers'] / stats['total_questions']) * 100, 2)}%",
-                        "Average Score": f"{round(stats['correct_answers'] / stats['count'], 2)}/{round(stats['total_questions'] / stats['count'], 2)}"
-                    }
-                
-                # Generate PDF report
-                pdf_buffer = generate_pdf_report(user, report_data, last_month_start, last_month_end)
-                
-                # Email the report
-                send_email.delay(
-                    recipient=user.username,
-                    subject=f"Monthly Performance Report - {last_month_start.strftime('%B %Y')}",
-                    body="Please find attached your monthly performance report.",
-                    attachment=pdf_buffer.getvalue(),
-                    attachment_name=f"quiz_report_{user.username}_{last_month_start.strftime('%Y_%m')}.pdf"
-                )
-                
-                successful_reports += 1
-                logger.info(f"Generated report for user {user.id}")
-                
-            except Exception as e:
-                logger.error(f"Failed to generate report for user {user.id}: {e}")
-                failed_reports += 1
-        
-        result = f"Generated monthly reports: {successful_reports} successful, {failed_reports} failed"
-        logger.info(result)
+        # Execute enhanced monthly reports
+        result = enhanced_monthly_reports_task()
         return result
         
     except Exception as e:
-        logger.error(f"Error in monthly reports task: {str(e)}")
+        logger.error(f"Error in enhanced monthly reports task: {str(e)}")
         raise self.retry(exc=e, countdown=1200, max_retries=3)
 
 @celery.task(bind=True)
@@ -299,6 +171,14 @@ def export_quiz_history_csv(self, user_id, export_format='csv'):
             chapter = quiz.chapter
             subject = chapter.subject
             
+            # Handle time_taken safely
+            time_taken_minutes = 0
+            if hasattr(attempt, 'time_taken') and attempt.time_taken:
+                try:
+                    time_taken_minutes = round(float(attempt.time_taken) / 60, 2)
+                except (ValueError, TypeError):
+                    time_taken_minutes = 0
+            
             export_data.append({
                 'Quiz Title': quiz.title,
                 'Subject': subject.name,
@@ -306,10 +186,10 @@ def export_quiz_history_csv(self, user_id, export_format='csv'):
                 'Start Time': attempt.start_time.strftime('%Y-%m-%d %H:%M:%S') if attempt.start_time else '',
                 'End Time': attempt.end_time.strftime('%Y-%m-%d %H:%M:%S') if attempt.end_time else '',
                 'Status': attempt.status,
-                'Total Questions': attempt.total_questions,
-                'Score': attempt.score,
+                'Total Questions': attempt.total_questions or 0,
+                'Score': attempt.score or 0,
                 'Percentage': round((attempt.score / attempt.total_questions * 100), 2) if attempt.total_questions > 0 else 0,
-                'Time Taken (minutes)': round(attempt.time_taken / 60, 2) if attempt.time_taken else 0,
+                'Time Taken (minutes)': time_taken_minutes,
                 'Duration': f"{quiz.time_duration} minutes"
             })
         
@@ -378,30 +258,56 @@ def export_user_performance_csv(self, admin_id, filters=None, export_format='csv
         if not admin or admin.role != Role.ADMIN:
             return {"error": "Unauthorized access"}
         
-        # Build query with filters
-        query = db.session.query(
-            User.username,
-            User.full_name,
-            User.qualification,
-            User.date_joined,
-            Subject.name.label('subject_name'),
-            Chapter.name.label('chapter_name'),
-            Quiz.title.label('quiz_title'),
-            UserQuizAttempt.start_time,
-            UserQuizAttempt.end_time,
-            UserQuizAttempt.status,
-            UserQuizAttempt.total_questions,
-            UserQuizAttempt.score,
-            UserQuizAttempt.time_taken
-        ).join(
-            UserQuizAttempt, User.id == UserQuizAttempt.user_id
-        ).join(
-            Quiz, UserQuizAttempt.quiz_id == Quiz.id
-        ).join(
-            Chapter, Quiz.chapter_id == Chapter.id
-        ).join(
-            Subject, Chapter.subject_id == Subject.id
-        )
+        # Build query with filters - handle missing time_taken column
+        try:
+            # Try to query with time_taken column
+            query = db.session.query(
+                User.username,
+                User.full_name,
+                User.qualification,
+                User.date_joined,
+                Subject.name.label('subject_name'),
+                Chapter.name.label('chapter_name'),
+                Quiz.title.label('quiz_title'),
+                UserQuizAttempt.start_time,
+                UserQuizAttempt.end_time,
+                UserQuizAttempt.status,
+                UserQuizAttempt.total_questions,
+                UserQuizAttempt.score,
+                UserQuizAttempt.time_taken
+            ).join(
+                UserQuizAttempt, User.id == UserQuizAttempt.user_id
+            ).join(
+                Quiz, UserQuizAttempt.quiz_id == Quiz.id
+            ).join(
+                Chapter, Quiz.chapter_id == Chapter.id
+            ).join(
+                Subject, Chapter.subject_id == Subject.id
+            )
+        except Exception as e:
+            # Fallback query without time_taken column if it doesn't exist
+            query = db.session.query(
+                User.username,
+                User.full_name,
+                User.qualification,
+                User.date_joined,
+                Subject.name.label('subject_name'),
+                Chapter.name.label('chapter_name'),
+                Quiz.title.label('quiz_title'),
+                UserQuizAttempt.start_time,
+                UserQuizAttempt.end_time,
+                UserQuizAttempt.status,
+                UserQuizAttempt.total_questions,
+                UserQuizAttempt.score
+            ).join(
+                UserQuizAttempt, User.id == UserQuizAttempt.user_id
+            ).join(
+                Quiz, UserQuizAttempt.quiz_id == Quiz.id
+            ).join(
+                Chapter, Quiz.chapter_id == Chapter.id
+            ).join(
+                Subject, Chapter.subject_id == Subject.id
+            )
         
         # Apply filters
         if filters:
@@ -424,7 +330,14 @@ def export_user_performance_csv(self, admin_id, filters=None, export_format='csv
         export_data = []
         for row in results:
             percentage = round((row.score / row.total_questions * 100), 2) if row.total_questions > 0 else 0
-            time_taken_minutes = round(row.time_taken / 60, 2) if row.time_taken else 0
+            
+            # Handle time_taken safely - check if attribute exists
+            time_taken_minutes = 0
+            if hasattr(row, 'time_taken') and row.time_taken:
+                try:
+                    time_taken_minutes = round(float(row.time_taken) / 60, 2)
+                except (ValueError, TypeError):
+                    time_taken_minutes = 0
             
             export_data.append({
                 'Username': row.username,
@@ -437,8 +350,8 @@ def export_user_performance_csv(self, admin_id, filters=None, export_format='csv
                 'Start Time': row.start_time.strftime('%Y-%m-%d %H:%M:%S') if row.start_time else '',
                 'End Time': row.end_time.strftime('%Y-%m-%d %H:%M:%S') if row.end_time else '',
                 'Status': row.status,
-                'Total Questions': row.total_questions,
-                'Score': row.score,
+                'Total Questions': row.total_questions or 0,
+                'Score': row.score or 0,
                 'Percentage': percentage,
                 'Time Taken (minutes)': time_taken_minutes,
                 'Performance': 'Excellent' if percentage >= 90 else 'Good' if percentage >= 70 else 'Average' if percentage >= 50 else 'Poor'

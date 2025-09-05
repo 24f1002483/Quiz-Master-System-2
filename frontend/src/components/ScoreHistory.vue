@@ -123,7 +123,14 @@ export default {
       this.filteredAttempts = filtered
     },
     formatDate(dateStr) {
-      return new Date(dateStr).toLocaleDateString()
+      if (!dateStr) return 'N/A'
+      try {
+        const date = new Date(dateStr)
+        if (isNaN(date.getTime())) return 'Invalid Date'
+        return date.toLocaleDateString()
+      } catch (error) {
+        return 'Invalid Date'
+      }
     },
     formatTime(seconds) {
       const mins = Math.floor(seconds / 60)

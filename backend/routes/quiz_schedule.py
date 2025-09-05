@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from models.model import db, Quiz, User
 from functools import wraps
 
@@ -75,7 +75,7 @@ def update_quiz_schedule(quiz_id):
 @schedule_bp.route('/quiz/status', methods=['GET'])
 def check_quiz_statuses():
     # This could be run periodically to deactivate expired quizzes
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     expired_quizzes = Quiz.query.filter(
         Quiz.end_date < now,
         Quiz.is_active == True

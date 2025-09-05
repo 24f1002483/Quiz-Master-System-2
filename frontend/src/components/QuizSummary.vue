@@ -2,13 +2,13 @@
   <div class="quiz-summary">
     <main class="summary-content">
       <section class="summary-section">
-        <h2>📊 Quiz Summary & Analytics</h2>
+        <h2>Quiz Summary & Analytics</h2>
         <p class="section-description">Overview of quiz performance and statistics</p>
         
         <div class="summary-grid">
           <!-- Quiz Statistics -->
           <div class="summary-card">
-            <h3>📈 Quiz Statistics</h3>
+            <h3>Quiz Statistics</h3>
             <div class="stats-grid">
               <div class="stat-item">
                 <span class="stat-number">{{ quizStats.totalQuizzes }}</span>
@@ -222,7 +222,14 @@ const loadAllQuizzes = async () => {
 };
 
 const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleString();
+  if (!dateString) return 'N/A';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+    return date.toLocaleString();
+  } catch (error) {
+    return 'Invalid Date';
+  }
 };
 
 const createPerformanceChart = async () => {

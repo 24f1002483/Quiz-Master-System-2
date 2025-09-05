@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.model import db, Quiz, Question, UserQuizAttempt, UserAnswer, User
-from datetime import datetime
+from datetime import datetime, timezone
 
 user_bp = Blueprint('user', __name__, url_prefix='/api/user')
 
@@ -18,7 +18,7 @@ def get_user_count():
 @user_bp.route('/quizzes/upcoming', methods=['GET'])
 @jwt_required()
 def get_upcoming_quizzes():
-    quizzes = Quiz.query.filter(Quiz.start_date >= datetime.utcnow()).all()
+    quizzes = Quiz.query.filter(Quiz.start_date >= datetime.now(timezone.utc)).all()
     quiz_list = []
     for q in quizzes:
         try:
@@ -259,7 +259,7 @@ def complete_quiz(attempt_id):
     
     attempt.score = correct_answers
     attempt.total_questions = total_questions  # This was missing!
-    attempt.end_time = datetime.utcnow()
+    attempt.end_time = datetime.now(timezone.utc)
     attempt.status = 'completed'
     
     try:
